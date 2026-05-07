@@ -3,13 +3,15 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 
+// Initialize express app
+const app = express();
+
 // Connect to database
 connectDB();
 
-const app = express();
-
-// Middleware
+// --- Middleware ---
 app.use(express.json());
+
 // CORS Configuration
 const allowedOrigins = process.env.FRONTEND_URL 
   ? [process.env.FRONTEND_URL, 'http://localhost:5173'] 
@@ -26,18 +28,64 @@ app.use(cors({
   credentials: true
 }));
 
-// Route files
+
+// --- Public/Health Routes (Before API Routes) ---
+
+// 1. Root Route
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "ExpenseIQ API is running successfully"
+  });
+});
+
+// 2. Health Check Route
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: "OK",
+    uptime: process.uptime(),
+    timestamp: new Date()
+  });
+});
+
+
+// --- API Routes ---
 const auth = require('./routes/auth');
 const expenses = require('./routes/expenses');
 const budget = require('./routes/budget');
 
-// Mount routers
 app.use('/api/v1/auth', auth);
 app.use('/api/v1/expenses', expenses);
 app.use('/api/v1/budget', budget);
 
+
+// --- Error Handling ---
+
+// 404 Handler for unknown routes
+app.use((req, res, next) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found"
+  });
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error(`❌ Error: ${err.message}`);
+  const statusCode = err.statusCode || 500;
+  res.status(statusCode).json({
+    success: false,
+    message: err.message || "Server Error",
+    stack: process.env.NODE_ENV === 'production' ? null : err.stack
+  });
+});
+
+
+// --- Server Startup ---
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 Allowed Origins: ${allowedOrigins.join(', ')}`);
 });
