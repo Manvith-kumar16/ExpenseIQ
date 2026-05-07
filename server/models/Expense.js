@@ -17,7 +17,13 @@ const expenseSchema = new mongoose.Schema({
   category: {
     type: String,
     required: [true, 'Please add a category'],
-    enum: ['Housing', 'Food', 'Transportation', 'Entertainment', 'Utilities', 'Healthcare', 'Education', 'Other']
+    enum: ['Food', 'Travel', 'Shopping', 'Bills', 'Entertainment', 'Health', 'Education', 'Other']
+  },
+  paymentMethod: {
+    type: String,
+    required: [true, 'Please add a payment method'],
+    enum: ['Cash', 'Credit Card', 'Debit Card', 'Bank Transfer', 'Other'],
+    default: 'Cash'
   },
   date: {
     type: Date,

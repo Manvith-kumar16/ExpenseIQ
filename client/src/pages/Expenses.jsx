@@ -1,13 +1,36 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { toast } from 'react-toastify';
+import { FaPlus, FaSearch, FaFilter, FaSort, FaEdit, FaTrash, FaWallet } from 'react-icons/fa';
+import ExpenseModal from '../components/ExpenseModal';
+import DeleteModal from '../components/DeleteModal';
+import ExpenseSkeleton from '../components/ExpenseSkeleton';
 
-const CATEGORIES = ['Housing', 'Food', 'Transportation', 'Entertainment', 'Utilities', 'Healthcare', 'Education', 'Other'];
+const CATEGORY_COLORS = {
+  Food: 'bg-warning text-dark',
+  Travel: 'bg-info text-white',
+  Shopping: 'bg-danger text-white',
+  Bills: 'bg-primary text-white',
+  Entertainment: 'bg-secondary text-white',
+  Health: 'bg-success text-white',
+  Education: 'bg-dark text-white',
+  Other: 'bg-light text-dark border'
+};
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState({ title: '', amount: '', category: CATEGORIES[0], date: new Date().toISOString().split('T')[0], description: '' });
+  
+  // Modal States
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Filters & Sorting
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterCategory, setFilterCategory] = useState('All');
+  const [sortBy, setSortBy] = useState('dateDesc');
 
   useEffect(() => {
     fetchExpenses();
@@ -15,6 +38,7 @@ const Expenses = () => {
 
   const fetchExpenses = async () => {
     try {
+      setLoading(true);
       const res = await api.get('/expenses');
       setExpenses(res.data.data);
     } catch (error) {
@@ -24,107 +48,216 @@ const Expenses = () => {
     }
   };
 
-  const onChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  // Handlers for Add/Edit
+  const handleAddClick = () => {
+    setSelectedExpense(null);
+    setShowExpenseModal(true);
+  };
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
+  const handleEditClick = (expense) => {
+    setSelectedExpense(expense);
+    setShowExpenseModal(true);
+  };
+
+  const handleSaveExpense = async (formData) => {
     try {
-      await api.post('/expenses', formData);
-      toast.success('Expense added successfully');
-      setFormData({ title: '', amount: '', category: CATEGORIES[0], date: new Date().toISOString().split('T')[0], description: '' });
+      if (selectedExpense) {
+        await api.put(`/expenses/${selectedExpense._id}`, formData);
+        toast.success('Expense updated successfully');
+      } else {
+        await api.post('/expenses', formData);
+        toast.success('Expense added successfully');
+      }
+      setShowExpenseModal(false);
       fetchExpenses();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to add expense');
+      toast.error(error.response?.data?.message || 'Operation failed');
     }
   };
 
-  const deleteExpense = async (id) => {
-    if (window.confirm('Are you sure you want to delete this expense?')) {
-      try {
-        await api.delete(`/expenses/${id}`);
-        toast.success('Expense deleted');
-        fetchExpenses();
-      } catch (error) {
-        toast.error('Failed to delete expense');
-      }
+  // Handlers for Delete
+  const handleDeleteClick = (expense) => {
+    setSelectedExpense(expense);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await api.delete(`/expenses/${selectedExpense._id}`);
+      toast.success('Expense deleted');
+      setShowDeleteModal(false);
+      fetchExpenses();
+    } catch (error) {
+      toast.error('Failed to delete expense');
+    } finally {
+      setIsDeleting(false);
     }
   };
+
+  // Derived State (Filtering and Sorting)
+  const getFilteredAndSortedExpenses = () => {
+    let filtered = expenses.filter(exp => {
+      const matchesSearch = exp.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = filterCategory === 'All' || exp.category === filterCategory;
+      return matchesSearch && matchesCategory;
+    });
+
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'dateDesc': return new Date(b.date) - new Date(a.date);
+        case 'dateAsc': return new Date(a.date) - new Date(b.date);
+        case 'amountDesc': return b.amount - a.amount;
+        case 'amountAsc': return a.amount - b.amount;
+        default: return 0;
+      }
+    });
+  };
+
+  const processedExpenses = getFilteredAndSortedExpenses();
 
   return (
-    <div className="animate-fade-in row">
-      <div className="col-md-4 mb-4">
-        <div className="fintech-card p-4 sticky-top" style={{ top: '2rem' }}>
-          <h5 className="fw-bold mb-4">Add New Expense</h5>
-          <form onSubmit={onSubmit}>
-            <div className="mb-3">
-              <label className="form-label text-secondary fw-500">Title</label>
-              <input type="text" className="form-control" name="title" value={formData.title} onChange={onChange} required />
+    <div className="animate-fade-in">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <h2 className="fw-bold text-primary m-0">My Expenses</h2>
+        <button className="btn btn-primary-custom d-flex align-items-center gap-2" onClick={handleAddClick}>
+          <FaPlus /> Add Expense
+        </button>
+      </div>
+
+      <div className="fintech-card p-4 mb-4">
+        <div className="row g-3">
+          <div className="col-md-4">
+            <div className="input-group">
+              <span className="input-group-text bg-white"><FaSearch className="text-secondary" /></span>
+              <input 
+                type="text" 
+                className="form-control border-start-0 ps-0" 
+                placeholder="Search expenses..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
-            <div className="mb-3">
-              <label className="form-label text-secondary fw-500">Amount</label>
-              <div className="input-group">
-                <span className="input-group-text">$</span>
-                <input type="number" step="0.01" min="0" className="form-control" name="amount" value={formData.amount} onChange={onChange} required />
-              </div>
-            </div>
-            <div className="mb-3">
-              <label className="form-label text-secondary fw-500">Category</label>
-              <select className="form-select" name="category" value={formData.category} onChange={onChange}>
-                {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+          </div>
+          <div className="col-md-4">
+            <div className="input-group">
+              <span className="input-group-text bg-white"><FaFilter className="text-secondary" /></span>
+              <select className="form-select border-start-0 ps-0" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+                <option value="All">All Categories</option>
+                <option value="Food">Food</option>
+                <option value="Travel">Travel</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Bills">Bills</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Health">Health</option>
+                <option value="Education">Education</option>
+                <option value="Other">Other</option>
               </select>
             </div>
-            <div className="mb-3">
-              <label className="form-label text-secondary fw-500">Date</label>
-              <input type="date" className="form-control" name="date" value={formData.date} onChange={onChange} required />
+          </div>
+          <div className="col-md-4">
+            <div className="input-group">
+              <span className="input-group-text bg-white"><FaSort className="text-secondary" /></span>
+              <select className="form-select border-start-0 ps-0" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                <option value="dateDesc">Newest First</option>
+                <option value="dateAsc">Oldest First</option>
+                <option value="amountDesc">Highest Amount</option>
+                <option value="amountAsc">Lowest Amount</option>
+              </select>
             </div>
-            <div className="mb-4">
-              <label className="form-label text-secondary fw-500">Description (Optional)</label>
-              <textarea className="form-control" name="description" value={formData.description} onChange={onChange} rows="2"></textarea>
-            </div>
-            <button type="submit" className="btn-primary-custom w-100">Save Expense</button>
-          </form>
+          </div>
         </div>
       </div>
 
-      <div className="col-md-8">
-        <div className="fintech-card p-4">
-          <h5 className="fw-bold mb-4">All Expenses</h5>
-          {loading ? (
-            <p>Loading...</p>
-          ) : expenses.length > 0 ? (
-            <div className="table-responsive">
-              <table className="table table-hover align-middle">
+      <div className="fintech-card p-4">
+        {loading ? (
+          <ExpenseSkeleton />
+        ) : processedExpenses.length > 0 ? (
+          <>
+            {/* Desktop Table */}
+            <div className="table-responsive d-none d-md-block">
+              <table className="table align-middle">
                 <thead>
                   <tr>
                     <th className="text-secondary fw-500 border-0">Date</th>
                     <th className="text-secondary fw-500 border-0">Title</th>
                     <th className="text-secondary fw-500 border-0">Category</th>
+                    <th className="text-secondary fw-500 border-0">Payment Method</th>
                     <th className="text-secondary fw-500 border-0">Amount</th>
-                    <th className="text-secondary fw-500 border-0">Action</th>
+                    <th className="text-secondary fw-500 border-0 text-end">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {expenses.map(expense => (
-                    <tr key={expense._id}>
-                      <td>{new Date(expense.date).toLocaleDateString()}</td>
-                      <td className="fw-bold">{expense.title}</td>
-                      <td><span className="badge bg-light text-dark border">{expense.category}</span></td>
-                      <td className="fw-bold text-danger">-${expense.amount.toFixed(2)}</td>
+                  {processedExpenses.map(expense => (
+                    <tr key={expense._id} className="expense-row">
+                      <td className="text-secondary">{new Date(expense.date).toLocaleDateString()}</td>
                       <td>
-                        <button className="btn btn-sm btn-outline-danger" onClick={() => deleteExpense(expense._id)}>Delete</button>
+                        <div className="fw-bold">{expense.title}</div>
+                        {expense.description && <small className="text-secondary d-block text-truncate" style={{maxWidth: '200px'}}>{expense.description}</small>}
+                      </td>
+                      <td><span className={`badge ${CATEGORY_COLORS[expense.category]}`}>{expense.category}</span></td>
+                      <td className="text-secondary">{expense.paymentMethod}</td>
+                      <td className="fw-bold text-danger">-${expense.amount.toFixed(2)}</td>
+                      <td className="text-end">
+                        <button className="btn btn-sm btn-light me-2 text-primary" onClick={() => handleEditClick(expense)}><FaEdit /></button>
+                        <button className="btn btn-sm btn-light text-danger" onClick={() => handleDeleteClick(expense)}><FaTrash /></button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          ) : (
-            <div className="text-center py-5">
-              <p className="text-secondary mb-0">No expenses recorded yet.</p>
+
+            {/* Mobile Cards */}
+            <div className="d-md-none">
+              {processedExpenses.map(expense => (
+                <div key={expense._id} className="expense-mobile-card">
+                  <div className="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                      <h6 className="fw-bold m-0">{expense.title}</h6>
+                      <small className="text-secondary">{new Date(expense.date).toLocaleDateString()}</small>
+                    </div>
+                    <span className="fw-bold text-danger fs-5">-${expense.amount.toFixed(2)}</span>
+                  </div>
+                  <div className="d-flex justify-content-between align-items-center mt-3">
+                    <div className="d-flex gap-2">
+                      <span className={`badge ${CATEGORY_COLORS[expense.category]}`}>{expense.category}</span>
+                      <small className="text-secondary">{expense.paymentMethod}</small>
+                    </div>
+                    <div>
+                      <button className="btn btn-sm btn-light me-2 text-primary" onClick={() => handleEditClick(expense)}><FaEdit /></button>
+                      <button className="btn btn-sm btn-light text-danger" onClick={() => handleDeleteClick(expense)}><FaTrash /></button>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
+          </>
+        ) : (
+          <div className="empty-state">
+            <FaWallet size={60} className="text-secondary opacity-50 mb-3" />
+            <h4 className="fw-bold text-secondary">No Expenses Found</h4>
+            <p className="text-secondary mb-4">You have no expenses matching your criteria. Add a new expense to get started.</p>
+            <button className="btn btn-primary-custom" onClick={handleAddClick}>
+              <FaPlus className="me-2" /> Add Expense
+            </button>
+          </div>
+        )}
       </div>
+
+      <ExpenseModal 
+        show={showExpenseModal} 
+        handleClose={() => setShowExpenseModal(false)} 
+        handleSave={handleSaveExpense} 
+        initialData={selectedExpense} 
+      />
+
+      <DeleteModal 
+        show={showDeleteModal} 
+        handleClose={() => setShowDeleteModal(false)} 
+        handleConfirm={confirmDelete} 
+        isDeleting={isDeleting} 
+      />
     </div>
   );
 };
