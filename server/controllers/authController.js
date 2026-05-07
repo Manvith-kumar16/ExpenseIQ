@@ -11,15 +11,20 @@ const generateToken = (id) => {
 // @desc    Register user
 // @route   POST /api/v1/auth/register
 // @access  Public
-exports.registerUser = async (req, res) => {
+exports.registerUser = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: 'Please provide name, email and password' });
+    }
 
     // Check if user exists
     const userExists = await User.findOne({ email });
 
     if (userExists) {
-      return res.status(400).json({ success: false, message: 'User already exists' });
+      console.warn(`⚠️ Registration failed: User ${email} already exists`);
+      return res.status(400).json({ success: false, message: 'User already exists with this email' });
     }
 
     // Create user
@@ -30,6 +35,7 @@ exports.registerUser = async (req, res) => {
     });
 
     if (user) {
+      console.log(`✅ New user registered: ${email}`);
       res.status(201).json({
         success: true,
         data: {
@@ -40,35 +46,44 @@ exports.registerUser = async (req, res) => {
         }
       });
     } else {
+      console.error('❌ Registration failed: Invalid user data returned after creation');
       res.status(400).json({ success: false, message: 'Invalid user data' });
     }
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error(`❌ Registration Error: ${error.message}`);
+    next(error);
   }
 };
 
 // @desc    Authenticate a user
 // @route   POST /api/v1/auth/login
 // @access  Public
-exports.loginUser = async (req, res) => {
+exports.loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Please provide an email and password' });
+    }
 
     // Check for user email
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
-      return res.status(400).json({ success: false, message: 'Invalid credentials' });
+      console.warn(`⚠️ Login failed: User not found (${email})`);
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
     // Check if password matches
     const isMatch = await user.matchPassword(password);
 
     if (!isMatch) {
-      return res.status(400).json({ success: false, message: 'Invalid credentials' });
+      console.warn(`⚠️ Login failed: Incorrect password (${email})`);
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    res.json({
+    console.log(`✅ User logged in: ${email}`);
+    res.status(200).json({
       success: true,
       data: {
         _id: user.id,
@@ -78,7 +93,8 @@ exports.loginUser = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error(`❌ Login Error: ${error.message}`);
+    next(error);
   }
 };
 

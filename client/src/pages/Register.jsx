@@ -16,7 +16,10 @@ const Register = () => {
 
   const onSubmit = async e => {
     e.preventDefault();
-    if (form.password !== form.confirmPassword) { toast.error('Passwords do not match'); return; }
+    if (form.password !== form.confirmPassword) { 
+      toast.error('Passwords do not match'); 
+      return; 
+    }
     setSubmitting(true);
     const ok = await register({ name: form.name, email: form.email, password: form.password });
     setSubmitting(false);
