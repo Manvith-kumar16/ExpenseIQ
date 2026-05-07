@@ -13,9 +13,12 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="sidebar show d-flex flex-column">
-      <div className="p-4 mb-3">
-        <h3 className="text-gradient m-0 fw-bold">ExpenseIQ</h3>
+    <div className="sidebar show d-flex flex-column shadow-sm">
+      <div className="p-4 mb-3 text-center">
+        <h3 className="m-0 fw-bold" style={{ letterSpacing: '-1px' }}>
+          <span className="text-primary">Expense</span>
+          <span className="text-secondary">IQ</span>
+        </h3>
       </div>
       
       <nav className="flex-grow-1">
@@ -33,8 +36,8 @@ const Sidebar = () => {
         </NavLink>
       </nav>
 
-      <div className="p-3 mt-auto">
-        <button className="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2" onClick={handleLogout}>
+      <div className="p-4 mt-auto">
+        <button className="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center gap-2" style={{ borderRadius: '8px' }} onClick={handleLogout}>
           <FaSignOutAlt /> Logout
         </button>
       </div>

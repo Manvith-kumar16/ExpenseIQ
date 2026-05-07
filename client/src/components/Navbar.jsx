@@ -8,7 +8,7 @@ const Navbar = () => {
   const { theme, toggleTheme } = useContext(ThemeContext);
 
   return (
-    <div className="top-navbar">
+    <div className="top-navbar glass-panel">
       <div className="d-flex align-items-center gap-4">
         <button 
           onClick={toggleTheme} 

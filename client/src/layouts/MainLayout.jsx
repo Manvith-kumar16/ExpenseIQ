@@ -6,11 +6,9 @@ const MainLayout = () => {
   return (
     <div className="d-flex">
       <Sidebar />
-      <div className="flex-grow-1 d-flex flex-column main-content">
-        <Navbar />
-        <div className="p-4 flex-grow-1">
-          <Outlet />
-        </div>
+      <Navbar />
+      <div className="flex-grow-1 main-content p-4">
+        <Outlet />
       </div>
     </div>
   );

@@ -110,9 +110,16 @@ const Dashboard = () => {
 
   return (
     <div className="animate-fade-in">
-      <div className="mb-4">
-        <h2 className="text-primary fw-bold mb-1">{getGreeting()}, {user?.name?.split(' ')[0] || 'User'}!</h2>
-        <p className="text-secondary m-0">Here's your financial overview for today, {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}.</p>
+      <div className="mb-4 glass-panel p-4 rounded d-flex align-items-center justify-content-between" style={{ borderLeft: '4px solid var(--primary)' }}>
+        <div>
+          <h2 className="fw-bold mb-1" style={{ letterSpacing: '-0.5px' }}>
+            <span className="text-primary">{getGreeting()}</span>, {user?.name?.split(' ')[0] || 'User'}!
+          </h2>
+          <p className="text-secondary m-0" style={{ fontSize: '1.1rem' }}>Here's your financial overview for today, <span className="fw-500 text-primary">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</span>.</p>
+        </div>
+        <div className="d-none d-md-block opacity-50">
+          <FaRegCalendarAlt size={48} className="text-primary" />
+        </div>
       </div>
 
       {alertElement}
