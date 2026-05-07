@@ -1,35 +1,45 @@
 import { useContext } from 'react';
+import { Search, Bell, Sun, Moon } from 'lucide-react';
 import AuthContext from '../context/AuthContext';
 import ThemeContext from '../context/ThemeContext';
-import { FaSun, FaMoon } from 'react-icons/fa';
 
 const Navbar = () => {
   const { user } = useContext(AuthContext);
   const { theme, toggleTheme } = useContext(ThemeContext);
+  const initials = user?.name?.charAt(0).toUpperCase() || 'M';
 
   return (
-    <div className="top-navbar glass-panel">
-      <div className="d-flex align-items-center gap-4">
-        <button 
-          onClick={toggleTheme} 
-          className="btn btn-link text-secondary p-0 text-decoration-none"
-          title="Toggle Theme"
-        >
-          {theme === 'light' ? <FaMoon size={20} /> : <FaSun size={20} />}
+    <header className="top-navbar">
+      {/* Search */}
+      <div className="search-bar">
+        <Search size={15} color="#475569" />
+        <input type="text" placeholder="Search expenses..." />
+        <span className="kbd">⌘ K</span>
+      </div>
+
+      {/* Right actions */}
+      <div className="navbar-actions">
+        {/* Theme toggle */}
+        <button className="icon-btn" onClick={toggleTheme} title="Toggle theme">
+          {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
         </button>
-        <div className="d-flex align-items-center gap-3">
-          <div className="text-end">
-            <p className="m-0 fw-bold">{user?.name || 'User'}</p>
-            <small className="text-secondary">Premium Member</small>
-          </div>
-        <div 
-          className="bg-gradient-primary rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
-          style={{ width: '40px', height: '40px' }}
-        >
-          {user?.name?.charAt(0).toUpperCase() || 'U'}
+
+        {/* Notifications */}
+        <div className="icon-btn">
+          <Bell size={16} />
+          <span className="notif-badge">3</span>
+        </div>
+
+        {/* User avatar */}
+        <div className="user-avatar">{initials}</div>
+
+        {/* User info (desktop) */}
+        <div className="d-none d-lg-block" style={{ lineHeight: 1.2 }}>
+          <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>{user?.name || 'User'}</div>
+          <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Premium Member</div>
         </div>
       </div>
-    </div>
+    </header>
   );
 };
 

@@ -1,307 +1,225 @@
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Plus, Search, Filter, ArrowUpDown, Download, Trash2, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { FaPlus, FaSearch, FaFilter, FaSort, FaEdit, FaTrash, FaWallet, FaFileCsv, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { exportToCSV } from '../utils/exportUtils';
 import ExpenseModal from '../components/ExpenseModal';
 import DeleteModal from '../components/DeleteModal';
-import ExpenseSkeleton from '../components/ExpenseSkeleton';
-import { exportToCSV } from '../utils/exportUtils';
-import Button from '../components/ui/Button';
-import Card from '../components/ui/Card';
 
-const CATEGORY_COLORS = {
-  Food: 'bg-warning text-dark',
-  Travel: 'bg-info text-white',
-  Shopping: 'bg-danger text-white',
-  Bills: 'bg-primary text-white',
-  Entertainment: 'bg-secondary text-white',
-  Health: 'bg-success text-white',
-  Education: 'bg-dark text-white',
-  Other: 'bg-light text-dark border'
+const CAT_COLORS = {
+  Food:          { bg:'rgba(16,185,129,0.12)',  color:'#10B981' },
+  Travel:        { bg:'rgba(6,182,212,0.12)',   color:'#06B6D4' },
+  Shopping:      { bg:'rgba(239,68,68,0.12)',   color:'#EF4444' },
+  Bills:         { bg:'rgba(37,99,235,0.12)',   color:'#2563EB' },
+  Entertainment: { bg:'rgba(124,58,237,0.12)',  color:'#A78BFA' },
+  Health:        { bg:'rgba(16,185,129,0.12)',  color:'#34D399' },
+  Education:     { bg:'rgba(249,115,22,0.12)',  color:'#F97316' },
+  Other:         { bg:'rgba(100,116,139,0.12)', color:'#94A3B8' },
 };
 
-const ITEMS_PER_PAGE = 10;
+const CATS = ['All','Food','Travel','Shopping','Bills','Entertainment','Health','Education','Other'];
+const PER_PAGE = 10;
+const fadeUp = { hidden:{opacity:0,y:16}, show:{opacity:1,y:0} };
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Modal States
-  const [showExpenseModal, setShowExpenseModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [selected, setSelected] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [search, setSearch] = useState('');
+  const [cat, setCat] = useState('All');
+  const [sort, setSort] = useState('dateDesc');
+  const [page, setPage] = useState(1);
 
-  // Filters & Sorting & Pagination
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterCategory, setFilterCategory] = useState('All');
-  const [sortBy, setSortBy] = useState('dateDesc');
-  const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => { load(); }, []);
+  useEffect(() => { setPage(1); }, [search, cat, sort]);
 
-  useEffect(() => {
-    fetchExpenses();
-  }, []);
+  const load = async () => {
+    try { setLoading(true); const r = await api.get('/expenses'); setExpenses(r.data.data); }
+    catch { toast.error('Failed to load expenses'); }
+    finally { setLoading(false); }
+  };
 
-  // Reset pagination when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, filterCategory, sortBy]);
-
-  const fetchExpenses = async () => {
+  const handleSave = async (data) => {
     try {
-      setLoading(true);
-      const res = await api.get('/expenses');
-      setExpenses(res.data.data);
-    } catch (error) {
-      toast.error('Failed to load expenses');
-    } finally {
-      setLoading(false);
-    }
+      selected ? await api.put(`/expenses/${selected._id}`, data) : await api.post('/expenses', data);
+      toast.success(selected ? 'Expense updated' : 'Expense added');
+      setShowModal(false); load();
+    } catch(e) { toast.error(e.response?.data?.message || 'Failed'); }
   };
 
-  const handleAddClick = () => {
-    setSelectedExpense(null);
-    setShowExpenseModal(true);
+  const handleDelete = async () => {
+    setDeleting(true);
+    try { await api.delete(`/expenses/${selected._id}`); toast.success('Deleted'); setShowDelete(false); load(); }
+    catch { toast.error('Failed to delete'); }
+    finally { setDeleting(false); }
   };
 
-  const handleEditClick = (expense) => {
-    setSelectedExpense(expense);
-    setShowExpenseModal(true);
-  };
-
-  const handleSaveExpense = async (formData) => {
-    try {
-      if (selectedExpense) {
-        await api.put(`/expenses/${selectedExpense._id}`, formData);
-        toast.success('Expense updated successfully');
-      } else {
-        await api.post('/expenses', formData);
-        toast.success('Expense added successfully');
-      }
-      setShowExpenseModal(false);
-      fetchExpenses();
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Operation failed');
-    }
-  };
-
-  const handleDeleteClick = (expense) => {
-    setSelectedExpense(expense);
-    setShowDeleteModal(true);
-  };
-
-  const confirmDelete = async () => {
-    setIsDeleting(true);
-    try {
-      await api.delete(`/expenses/${selectedExpense._id}`);
-      toast.success('Expense deleted');
-      setShowDeleteModal(false);
-      fetchExpenses();
-    } catch (error) {
-      toast.error('Failed to delete expense');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  // Derived State
-  const getFilteredAndSortedExpenses = () => {
-    let filtered = expenses.filter(exp => {
-      const matchesSearch = exp.title.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = filterCategory === 'All' || exp.category === filterCategory;
-      return matchesSearch && matchesCategory;
+  const filtered = expenses
+    .filter(e => e.title?.toLowerCase().includes(search.toLowerCase()) && (cat === 'All' || e.category === cat))
+    .sort((a,b) => {
+      if (sort === 'dateDesc')   return new Date(b.date) - new Date(a.date);
+      if (sort === 'dateAsc')    return new Date(a.date) - new Date(b.date);
+      if (sort === 'amountDesc') return b.amount - a.amount;
+      return a.amount - b.amount;
     });
 
-    return filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'dateDesc': return new Date(b.date) - new Date(a.date);
-        case 'dateAsc': return new Date(a.date) - new Date(b.date);
-        case 'amountDesc': return b.amount - a.amount;
-        case 'amountAsc': return a.amount - b.amount;
-        default: return 0;
-      }
-    });
-  };
-
-  const processedExpenses = getFilteredAndSortedExpenses();
-  const totalPages = Math.ceil(processedExpenses.length / ITEMS_PER_PAGE);
-  const currentData = processedExpenses.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const pageData   = filtered.slice((page-1)*PER_PAGE, page*PER_PAGE);
+  const totalFiltered = filtered.reduce((s,e) => s + e.amount, 0);
 
   return (
-    <div className="animate-fade-in">
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-        <h2 className="fw-bold text-primary m-0">My Expenses</h2>
+    <motion.div initial="hidden" animate="show" variants={{ hidden:{}, show:{ transition:{ staggerChildren:0.07 } } }}>
+
+      {/* Header */}
+      <motion.div variants={fadeUp} className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+          <h2 style={{ fontFamily:'Outfit', fontWeight:800, fontSize:'1.6rem', letterSpacing:'-0.03em', marginBottom:4 }}>My Expenses</h2>
+          <p style={{ color:'#64748B', margin:0, fontSize:'0.875rem' }}>
+            {filtered.length} transactions · <span style={{ color:'#A78BFA' }}>${totalFiltered.toFixed(2)} total</span>
+          </p>
+        </div>
         <div className="d-flex gap-2">
-          <Button variant="outline-primary" onClick={() => exportToCSV(processedExpenses)}>
-            <FaFileCsv className="me-2" /> Export CSV
-          </Button>
-          <Button onClick={handleAddClick}>
-            <FaPlus className="me-2" /> Add Expense
-          </Button>
+          <button className="btn-ghost d-flex align-items-center gap-2" onClick={() => exportToCSV(filtered)}>
+            <Download size={15} /> Export CSV
+          </button>
+          <button className="btn-primary" onClick={() => { setSelected(null); setShowModal(true); }}>
+            <Plus size={16} /> Add Expense
+          </button>
         </div>
-      </div>
+      </motion.div>
 
-      <Card className="mb-4">
-        <div className="row g-3">
-          <div className="col-md-4">
-            <div className="input-group">
-              <span className="input-group-text bg-transparent"><FaSearch className="text-secondary" /></span>
-              <input 
-                type="text" 
-                className="form-control border-start-0 ps-0 bg-transparent" 
-                placeholder="Search expenses..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+      {/* Filters */}
+      <motion.div variants={fadeUp} className="glass-card p-4 mb-4 no-hover">
+        <div className="d-flex flex-wrap gap-3 align-items-center">
+          <div className="search-bar flex-grow-1" style={{ minWidth:200, maxWidth:340 }}>
+            <Search size={15} color="#475569" />
+            <input placeholder="Search expenses..." value={search} onChange={e=>setSearch(e.target.value)} />
           </div>
-          <div className="col-md-4">
-            <div className="input-group">
-              <span className="input-group-text bg-transparent"><FaFilter className="text-secondary" /></span>
-              <select className="form-select border-start-0 ps-0 bg-transparent" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
-                <option value="All">All Categories</option>
-                <option value="Food">Food</option>
-                <option value="Travel">Travel</option>
-                <option value="Shopping">Shopping</option>
-                <option value="Bills">Bills</option>
-                <option value="Entertainment">Entertainment</option>
-                <option value="Health">Health</option>
-                <option value="Education">Education</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
+          <div className="d-flex align-items-center gap-2" style={{ color:'#64748B' }}>
+            <Filter size={14} />
+            <select value={cat} onChange={e=>setCat(e.target.value)}
+              style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, color:'#94A3B8', fontSize:'0.85rem', padding:'6px 12px', outline:'none' }}>
+              {CATS.map(c => <option key={c} value={c}>{c === 'All' ? 'All Categories' : c}</option>)}
+            </select>
           </div>
-          <div className="col-md-4">
-            <div className="input-group">
-              <span className="input-group-text bg-transparent"><FaSort className="text-secondary" /></span>
-              <select className="form-select border-start-0 ps-0 bg-transparent" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                <option value="dateDesc">Newest First</option>
-                <option value="dateAsc">Oldest First</option>
-                <option value="amountDesc">Highest Amount</option>
-                <option value="amountAsc">Lowest Amount</option>
-              </select>
-            </div>
+          <div className="d-flex align-items-center gap-2" style={{ color:'#64748B' }}>
+            <ArrowUpDown size={14} />
+            <select value={sort} onChange={e=>setSort(e.target.value)}
+              style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:8, color:'#94A3B8', fontSize:'0.85rem', padding:'6px 12px', outline:'none' }}>
+              <option value="dateDesc">Newest First</option>
+              <option value="dateAsc">Oldest First</option>
+              <option value="amountDesc">Highest Amount</option>
+              <option value="amountAsc">Lowest Amount</option>
+            </select>
           </div>
         </div>
-      </Card>
+      </motion.div>
 
-      <Card>
+      {/* Table */}
+      <motion.div variants={fadeUp} className="glass-card no-hover" style={{ overflow:'hidden' }}>
         {loading ? (
-          <ExpenseSkeleton />
-        ) : currentData.length > 0 ? (
-          <>
-            {/* Desktop Table */}
-            <div className="table-responsive d-none d-md-block">
-              <table className="table align-middle">
-                <thead>
-                  <tr>
-                    <th className="text-secondary fw-500 border-0">Date</th>
-                    <th className="text-secondary fw-500 border-0">Title</th>
-                    <th className="text-secondary fw-500 border-0">Category</th>
-                    <th className="text-secondary fw-500 border-0">Payment Method</th>
-                    <th className="text-secondary fw-500 border-0">Amount</th>
-                    <th className="text-secondary fw-500 border-0 text-end">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentData.map(expense => (
-                    <tr key={expense._id} className="expense-row">
-                      <td className="text-secondary">{new Date(expense.date).toLocaleDateString()}</td>
-                      <td>
-                        <div className="fw-bold">{expense.title}</div>
-                        {expense.description && <small className="text-secondary d-block text-truncate" style={{maxWidth: '200px'}}>{expense.description}</small>}
-                      </td>
-                      <td><span className={`badge ${CATEGORY_COLORS[expense.category]}`}>{expense.category}</span></td>
-                      <td className="text-secondary">{expense.paymentMethod}</td>
-                      <td className="fw-bold text-danger">-${expense.amount.toFixed(2)}</td>
-                      <td className="text-end">
-                        <button className="btn btn-sm btn-link text-primary p-1 me-2" onClick={() => handleEditClick(expense)}><FaEdit size={18} /></button>
-                        <button className="btn btn-sm btn-link text-danger p-1" onClick={() => handleDeleteClick(expense)}><FaTrash size={18} /></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="p-4">{[...Array(5)].map((_,i) => (
+            <div key={i} className="d-flex gap-3 mb-3 align-items-center">
+              <div className="skeleton" style={{ width:42, height:42, borderRadius:12, flexShrink:0 }} />
+              <div className="flex-grow-1">
+                <div className="skeleton" style={{ height:14, width:'40%', marginBottom:6 }} />
+                <div className="skeleton" style={{ height:12, width:'25%' }} />
+              </div>
+              <div className="skeleton" style={{ height:16, width:80 }} />
             </div>
-
-            {/* Mobile Cards */}
-            <div className="d-md-none">
-              {currentData.map(expense => (
-                <div key={expense._id} className="expense-mobile-card">
-                  <div className="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                      <h6 className="fw-bold m-0">{expense.title}</h6>
-                      <small className="text-secondary">{new Date(expense.date).toLocaleDateString()}</small>
-                    </div>
-                    <span className="fw-bold text-danger fs-5">-${expense.amount.toFixed(2)}</span>
-                  </div>
-                  <div className="d-flex justify-content-between align-items-center mt-3">
-                    <div className="d-flex gap-2">
-                      <span className={`badge ${CATEGORY_COLORS[expense.category]}`}>{expense.category}</span>
-                      <small className="text-secondary">{expense.paymentMethod}</small>
-                    </div>
-                    <div>
-                      <button className="btn btn-sm btn-link text-primary p-1 me-2" onClick={() => handleEditClick(expense)}><FaEdit size={18} /></button>
-                      <button className="btn btn-sm btn-link text-danger p-1" onClick={() => handleDeleteClick(expense)}><FaTrash size={18} /></button>
-                    </div>
-                  </div>
-                </div>
+          ))}</div>
+        ) : pageData.length === 0 ? (
+          <div className="empty-state m-4">
+            <div style={{ fontSize:'3rem', marginBottom:'1rem' }}>💸</div>
+            <h5 style={{ fontFamily:'Outfit', fontWeight:700, marginBottom:8 }}>No Expenses Found</h5>
+            <p style={{ color:'#64748B', marginBottom:'1.5rem' }}>Add your first expense to get started</p>
+            <button className="btn-primary" onClick={() => { setSelected(null); setShowModal(true); }}>
+              <Plus size={16} /> Add Expense
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Desktop header */}
+            <div className="d-none d-md-grid px-4 py-3" style={{ gridTemplateColumns:'1fr 130px 120px 100px 80px', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+              {['Transaction','Category','Date','Amount',''].map((h,i) => (
+                <span key={i} style={{ fontSize:'0.72rem', fontWeight:600, letterSpacing:'0.07em', textTransform:'uppercase', color:'#475569', textAlign: i>=3?'right':undefined }}>{h}</span>
               ))}
             </div>
 
-            {/* Pagination Controls */}
+            {pageData.map((exp, i) => {
+              const c = CAT_COLORS[exp.category] || CAT_COLORS.Other;
+              return (
+                <div key={exp._id} className="txn-row" style={{ gridTemplateColumns:'1fr 130px 120px 100px 80px' }}>
+                  {/* Name */}
+                  <div className="d-flex align-items-center gap-3">
+                    <div className="txn-icon" style={{ background: c.bg }}>
+                      <span style={{ fontSize:'1.1rem' }}>
+                        {exp.category === 'Food' ? '🍔' : exp.category === 'Travel' ? '✈️' : exp.category === 'Shopping' ? '🛒' : exp.category === 'Bills' ? '📄' : exp.category === 'Entertainment' ? '🎬' : exp.category === 'Health' ? '💊' : exp.category === 'Education' ? '📚' : '💳'}
+                      </span>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight:600, fontSize:'0.9rem' }}>{exp.title}</div>
+                      {exp.description && <div style={{ color:'#475569', fontSize:'0.78rem', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:200 }}>{exp.description}</div>}
+                    </div>
+                  </div>
+                  {/* Category */}
+                  <div className="d-none d-md-flex align-items-center">
+                    <span className="category-badge" style={{ background: c.bg, color: c.color }}>
+                      {exp.category}
+                    </span>
+                  </div>
+                  {/* Date */}
+                  <div className="d-none d-md-flex align-items-center" style={{ color:'#64748B', fontSize:'0.85rem' }}>
+                    {new Date(exp.date).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}
+                  </div>
+                  {/* Amount */}
+                  <div className="d-none d-md-flex align-items-center justify-content-end">
+                    <span style={{ fontFamily:'Outfit', fontWeight:700, color:'#EF4444' }}>-${exp.amount.toFixed(2)}</span>
+                  </div>
+                  {/* Mobile amount */}
+                  <div className="d-flex d-md-none align-items-center ms-auto">
+                    <span style={{ fontFamily:'Outfit', fontWeight:700, color:'#EF4444', fontSize:'0.9rem' }}>-${exp.amount.toFixed(2)}</span>
+                  </div>
+                  {/* Actions */}
+                  <div className="d-none d-md-flex align-items-center justify-content-end gap-2">
+                    <button className="icon-btn" style={{ width:30, height:30, borderRadius:8 }} onClick={() => { setSelected(exp); setShowModal(true); }}>
+                      <Edit2 size={13} />
+                    </button>
+                    <button className="icon-btn" style={{ width:30, height:30, borderRadius:8, borderColor:'rgba(239,68,68,0.2)', color:'#EF4444' }} onClick={() => { setSelected(exp); setShowDelete(true); }}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Pagination */}
             {totalPages > 1 && (
-              <div className="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-                <small className="text-secondary">
-                  Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, processedExpenses.length)} of {processedExpenses.length}
-                </small>
+              <div className="d-flex justify-content-between align-items-center px-4 py-3" style={{ borderTop:'1px solid rgba(255,255,255,0.06)' }}>
+                <span style={{ color:'#64748B', fontSize:'0.8rem' }}>
+                  {(page-1)*PER_PAGE+1}–{Math.min(page*PER_PAGE, filtered.length)} of {filtered.length}
+                </span>
                 <div className="d-flex gap-2">
-                  <Button 
-                    variant="light" 
-                    size="sm" 
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <FaChevronLeft /> Prev
-                  </Button>
-                  <Button 
-                    variant="light" 
-                    size="sm" 
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next <FaChevronRight />
-                  </Button>
+                  <button className="btn-ghost" style={{ padding:'6px 12px' }} disabled={page===1} onClick={() => setPage(p => p-1)}>
+                    <ChevronLeft size={15} />
+                  </button>
+                  <button className="btn-ghost" style={{ padding:'6px 12px' }} disabled={page===totalPages} onClick={() => setPage(p => p+1)}>
+                    <ChevronRight size={15} />
+                  </button>
                 </div>
               </div>
             )}
           </>
-        ) : (
-          <div className="empty-state">
-            <FaWallet size={60} className="text-secondary opacity-50 mb-3" />
-            <h4 className="fw-bold text-secondary">No Expenses Found</h4>
-            <p className="text-secondary mb-4">You have no expenses matching your criteria. Add a new expense to get started.</p>
-            <Button onClick={handleAddClick}>
-              <FaPlus className="me-2" /> Add Expense
-            </Button>
-          </div>
         )}
-      </Card>
+      </motion.div>
 
-      <ExpenseModal 
-        show={showExpenseModal} 
-        handleClose={() => setShowExpenseModal(false)} 
-        handleSave={handleSaveExpense} 
-        initialData={selectedExpense} 
-      />
-
-      <DeleteModal 
-        show={showDeleteModal} 
-        handleClose={() => setShowDeleteModal(false)} 
-        handleConfirm={confirmDelete} 
-        isDeleting={isDeleting} 
-      />
-    </div>
+      <ExpenseModal show={showModal} handleClose={() => setShowModal(false)} handleSave={handleSave} initialData={selected} />
+      <DeleteModal  show={showDelete} handleClose={() => setShowDelete(false)} handleConfirm={handleDelete} isDeleting={deleting} />
+    </motion.div>
   );
 };
 
