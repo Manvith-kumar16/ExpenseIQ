@@ -275,3 +275,62 @@ body {
   border-radius: var(--radius);
   border: 1px dashed var(--border);
 }
+
+/* Dashboard Grid */
+.dashboard-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(12, 1fr);
+}
+
+.dashboard-summary-card {
+  grid-column: span 3;
+}
+
+.dashboard-chart-large {
+  grid-column: span 8;
+}
+
+.dashboard-chart-small {
+  grid-column: span 4;
+}
+
+.dashboard-insights {
+  grid-column: span 12;
+}
+
+@media (max-width: 1200px) {
+  .dashboard-summary-card {
+    grid-column: span 6;
+  }
+  .dashboard-chart-large, .dashboard-chart-small {
+    grid-column: span 12;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-summary-card {
+    grid-column: span 12;
+  }
+}
+
+/* Progress Bar Custom */
+.progress-custom {
+  height: 8px;
+  background-color: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-custom-bar {
+  background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s ease-in-out;
+}
+
+/* Insight Cards */
+.insight-card {
+  border-left: 4px solid var(--primary);
+  background: rgba(99, 102, 241, 0.05);
+}

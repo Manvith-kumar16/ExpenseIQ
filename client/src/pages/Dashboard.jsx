@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
-
-const COLORS = ['#6366f1', '#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#64748b'];
+import { FaWallet, FaRegCalendarAlt, FaChartPie, FaExchangeAlt, FaLightbulb } from 'react-icons/fa';
+import AnimatedCounter from '../components/AnimatedCounter';
+import CategoryPieChart from '../components/charts/CategoryPieChart';
+import MonthlyBarChart from '../components/charts/MonthlyBarChart';
+import TrendLineChart from '../components/charts/TrendLineChart';
+import { generateInsights, processCategoryData, processMonthlyData, processTrendData } from '../utils/dashboardUtils';
 
 const Dashboard = () => {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // MOCK BUDGET
+  const MONTHLY_BUDGET = 2000;
 
   useEffect(() => {
     const fetchExpenses = async () => {
@@ -22,89 +28,151 @@ const Dashboard = () => {
     fetchExpenses();
   }, []);
 
-  const totalExpenses = expenses.reduce((acc, curr) => acc + curr.amount, 0);
+  if (loading) return (
+    <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '50vh' }}>
+      <div className="spinner-border text-primary" role="status"></div>
+    </div>
+  );
 
-  // Group by category for pie chart
-  const categoryData = expenses.reduce((acc, expense) => {
-    const existing = acc.find(item => item.name === expense.category);
-    if (existing) {
-      existing.value += expense.amount;
-    } else {
-      acc.push({ name: expense.category, value: expense.amount });
-    }
-    return acc;
-  }, []);
+  // Data Processing
+  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const currentMonthExpenses = expenses.filter(exp => new Date(exp.date).getMonth() === new Date().getMonth());
+  const currentMonthTotal = currentMonthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+  
+  const categoryData = processCategoryData(expenses);
+  const highestCategory = categoryData.length > 0 
+    ? categoryData.reduce((prev, current) => (prev.value > current.value) ? prev : current).name 
+    : 'N/A';
 
-  if (loading) return <div>Loading...</div>;
+  const monthlyData = processMonthlyData(expenses);
+  const trendData = processTrendData(expenses);
+  const insights = generateInsights(expenses);
+
+  const budgetProgress = Math.min((currentMonthTotal / MONTHLY_BUDGET) * 100, 100);
 
   return (
     <div className="animate-fade-in">
-      <h2 className="mb-4 text-primary fw-bold">Dashboard Overview</h2>
-      
-      <div className="row mb-4">
-        <div className="col-md-4">
-          <div className="fintech-card p-4 bg-gradient-primary">
-            <h5 className="mb-2 text-white-50">Total Expenses</h5>
-            <h2 className="m-0">${totalExpenses.toFixed(2)}</h2>
-          </div>
-        </div>
-        <div className="col-md-4">
-          <div className="fintech-card p-4">
-            <h5 className="mb-2 text-secondary">Transaction Count</h5>
-            <h2 className="m-0 text-primary">{expenses.length}</h2>
-          </div>
-        </div>
-      </div>
+      <h2 className="mb-4 text-primary fw-bold">Analytics Dashboard</h2>
 
-      <div className="row">
-        <div className="col-md-6 mb-4">
-          <div className="fintech-card p-4 h-100">
-            <h5 className="mb-4 fw-bold">Expenses by Category</h5>
-            {categoryData.length > 0 ? (
-              <div style={{ height: '300px' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={categoryData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {categoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip formatter={(value) => `$${value.toFixed(2)}`} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <p className="text-secondary text-center py-5">No expense data available.</p>
-            )}
+      {/* Grid Layout */}
+      <div className="dashboard-grid">
+        
+        {/* Summary Cards */}
+        <div className="dashboard-summary-card fintech-card p-4">
+          <div className="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <h6 className="text-secondary mb-1">Total Expenses</h6>
+              <h3 className="fw-bold m-0 text-primary">
+                <AnimatedCounter value={totalExpenses} prefix="$" decimals={2} />
+              </h3>
+            </div>
+            <div className="bg-light p-2 rounded text-primary"><FaWallet size={20} /></div>
           </div>
         </div>
-        
-        <div className="col-md-6 mb-4">
-          <div className="fintech-card p-4 h-100">
-            <h5 className="mb-4 fw-bold">Recent Transactions</h5>
-            <div className="list-group list-group-flush">
-              {expenses.slice(0, 5).map(expense => (
-                <div key={expense._id} className="list-group-item d-flex justify-content-between align-items-center px-0 py-3 border-bottom">
-                  <div>
-                    <h6 className="m-0 fw-bold">{expense.title}</h6>
-                    <small className="text-secondary">{new Date(expense.date).toLocaleDateString()} &bull; {expense.category}</small>
+
+        <div className="dashboard-summary-card fintech-card p-4">
+          <div className="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <h6 className="text-secondary mb-1">This Month</h6>
+              <h3 className="fw-bold m-0">
+                <AnimatedCounter value={currentMonthTotal} prefix="$" decimals={2} />
+              </h3>
+            </div>
+            <div className="bg-light p-2 rounded text-info"><FaRegCalendarAlt size={20} /></div>
+          </div>
+        </div>
+
+        <div className="dashboard-summary-card fintech-card p-4">
+          <div className="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <h6 className="text-secondary mb-1">Highest Category</h6>
+              <h3 className="fw-bold m-0">{highestCategory}</h3>
+            </div>
+            <div className="bg-light p-2 rounded text-danger"><FaChartPie size={20} /></div>
+          </div>
+        </div>
+
+        <div className="dashboard-summary-card fintech-card p-4">
+          <div className="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <h6 className="text-secondary mb-1">Total Transactions</h6>
+              <h3 className="fw-bold m-0">
+                <AnimatedCounter value={expenses.length} />
+              </h3>
+            </div>
+            <div className="bg-light p-2 rounded text-success"><FaExchangeAlt size={20} /></div>
+          </div>
+        </div>
+
+        {/* AI Insights & Budget */}
+        <div className="dashboard-insights fintech-card p-4">
+          <h5 className="fw-bold mb-4 d-flex align-items-center gap-2">
+            <FaLightbulb className="text-warning" /> Spending Insights
+          </h5>
+          <div className="row">
+            <div className="col-md-8">
+              <div className="d-flex flex-wrap gap-3">
+                {insights.map((insight, idx) => (
+                  <div key={idx} className="insight-card p-3 rounded w-100 shadow-sm">
+                    <p className="m-0 fw-500">{insight}</p>
                   </div>
-                  <span className="fw-bold text-danger">-${expense.amount.toFixed(2)}</span>
-                </div>
-              ))}
-              {expenses.length === 0 && <p className="text-secondary text-center py-4">No recent transactions.</p>}
+                ))}
+              </div>
+            </div>
+            <div className="col-md-4 mt-4 mt-md-0 d-flex flex-column justify-content-center">
+              <h6 className="text-secondary mb-2">Monthly Budget ($2,000)</h6>
+              <div className="d-flex justify-content-between mb-1">
+                <span className="fw-bold">${currentMonthTotal.toFixed(2)}</span>
+                <span className="text-secondary">{budgetProgress.toFixed(0)}%</span>
+              </div>
+              <div className="progress-custom">
+                <div 
+                  className="progress-custom-bar" 
+                  style={{ width: `${budgetProgress}%`, background: budgetProgress > 90 ? 'var(--danger)' : '' }}
+                ></div>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Charts */}
+        <div className="dashboard-chart-large fintech-card p-4">
+          <h5 className="fw-bold mb-4">Monthly Spending</h5>
+          <div style={{ height: '300px' }}>
+            <MonthlyBarChart data={monthlyData} />
+          </div>
+        </div>
+
+        <div className="dashboard-chart-small fintech-card p-4">
+          <h5 className="fw-bold mb-4">Categories</h5>
+          <div style={{ height: '300px' }}>
+            <CategoryPieChart data={categoryData} />
+          </div>
+        </div>
+
+        <div className="dashboard-chart-large fintech-card p-4">
+          <h5 className="fw-bold mb-4">Last 7 Days Trend</h5>
+          <div style={{ height: '300px' }}>
+            <TrendLineChart data={trendData} />
+          </div>
+        </div>
+
+        <div className="dashboard-chart-small fintech-card p-4">
+          <h5 className="fw-bold mb-4">Recent Transactions</h5>
+          <div className="list-group list-group-flush">
+            {expenses.slice(0, 5).map(expense => (
+              <div key={expense._id} className="list-group-item d-flex justify-content-between align-items-center px-0 py-3 border-bottom">
+                <div>
+                  <h6 className="m-0 fw-bold">{expense.title}</h6>
+                  <small className="text-secondary">{new Date(expense.date).toLocaleDateString()} &bull; {expense.category}</small>
+                </div>
+                <span className="fw-bold text-danger">-${expense.amount.toFixed(2)}</span>
+              </div>
+            ))}
+            {expenses.length === 0 && <p className="text-secondary text-center py-4">No transactions found.</p>}
+          </div>
+        </div>
+
       </div>
     </div>
   );
