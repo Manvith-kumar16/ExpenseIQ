@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import { motion } from 'framer-motion';
-import { User, Mail, Lock, ShieldCheck, Crown } from 'lucide-react';
+import { User, Mail, Lock, ShieldCheck } from 'lucide-react';
 import AuthContext from '../context/AuthContext';
 
 const fadeUp = { hidden:{opacity:0,y:16}, show:{opacity:1,y:0} };
@@ -24,11 +24,6 @@ const Profile = () => {
             {initials}
           </div>
           <h3 style={{ fontFamily:'Outfit', fontWeight:700, marginBottom:4 }}>{user?.name || 'User'}</h3>
-          <div className="d-flex align-items-center justify-content-center gap-2" style={{ color:'#94A3B8', fontSize:'0.875rem' }}>
-            <Crown size={14} color="#F59E0B" /> Premium Member
-            <span style={{ color:'#475569' }}>·</span>
-            Since {user?.createdAt ? new Date(user.createdAt).getFullYear() : '2025'}
-          </div>
         </motion.div>
 
         {/* Info card */}
@@ -51,15 +46,9 @@ const Profile = () => {
                 <div style={{ fontSize:'0.75rem', color:'#475569', marginBottom:2 }}>{label}</div>
                 <div style={{ fontWeight:500 }}>{value || 'N/A'}</div>
               </div>
-              <button className="btn-ghost" style={{ fontSize:'0.78rem', padding:'4px 12px' }} disabled>Edit</button>
             </div>
           ))}
 
-          <div style={{ padding:'1rem 1.5rem', background:'rgba(249,115,22,0.05)', borderTop:'1px solid rgba(249,115,22,0.15)' }}>
-            <p style={{ margin:0, color:'#94A3B8', fontSize:'0.8rem' }}>
-              💡 Profile editing is coming in the next release. Stay tuned!
-            </p>
-          </div>
         </motion.div>
       </div>
     </motion.div>
