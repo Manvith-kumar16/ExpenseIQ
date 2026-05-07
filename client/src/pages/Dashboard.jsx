@@ -9,8 +9,11 @@ import TrendLineChart from '../components/charts/TrendLineChart';
 import BudgetModal from '../components/BudgetModal';
 import { generateInsights, processCategoryData, processMonthlyData, processTrendData } from '../utils/dashboardUtils';
 import { Alert } from 'react-bootstrap';
+import AuthContext from '../context/AuthContext';
+import { useContext } from 'react';
 
 const Dashboard = () => {
+  const { user } = useContext(AuthContext);
   const [expenses, setExpenses] = useState([]);
   const [budget, setBudget] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -97,9 +100,20 @@ const Dashboard = () => {
     );
   }
 
+  // Welcome Greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
   return (
     <div className="animate-fade-in">
-      <h2 className="mb-4 text-primary fw-bold">Analytics Dashboard</h2>
+      <div className="mb-4">
+        <h2 className="text-primary fw-bold mb-1">{getGreeting()}, {user?.name?.split(' ')[0] || 'User'}!</h2>
+        <p className="text-secondary m-0">Here's your financial overview for today, {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}.</p>
+      </div>
 
       {alertElement}
 

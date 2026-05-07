@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { toast } from 'react-toastify';
-import { FaPlus, FaSearch, FaFilter, FaSort, FaEdit, FaTrash, FaWallet } from 'react-icons/fa';
+import { FaPlus, FaSearch, FaFilter, FaSort, FaEdit, FaTrash, FaWallet, FaFileCsv, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import ExpenseModal from '../components/ExpenseModal';
 import DeleteModal from '../components/DeleteModal';
 import ExpenseSkeleton from '../components/ExpenseSkeleton';
+import { exportToCSV } from '../utils/exportUtils';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
 
 const CATEGORY_COLORS = {
   Food: 'bg-warning text-dark',
@@ -17,6 +20,8 @@ const CATEGORY_COLORS = {
   Other: 'bg-light text-dark border'
 };
 
+const ITEMS_PER_PAGE = 10;
+
 const Expenses = () => {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,14 +32,20 @@ const Expenses = () => {
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Filters & Sorting
+  // Filters & Sorting & Pagination
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [sortBy, setSortBy] = useState('dateDesc');
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     fetchExpenses();
   }, []);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterCategory, sortBy]);
 
   const fetchExpenses = async () => {
     try {
@@ -48,7 +59,6 @@ const Expenses = () => {
     }
   };
 
-  // Handlers for Add/Edit
   const handleAddClick = () => {
     setSelectedExpense(null);
     setShowExpenseModal(true);
@@ -75,7 +85,6 @@ const Expenses = () => {
     }
   };
 
-  // Handlers for Delete
   const handleDeleteClick = (expense) => {
     setSelectedExpense(expense);
     setShowDeleteModal(true);
@@ -95,7 +104,7 @@ const Expenses = () => {
     }
   };
 
-  // Derived State (Filtering and Sorting)
+  // Derived State
   const getFilteredAndSortedExpenses = () => {
     let filtered = expenses.filter(exp => {
       const matchesSearch = exp.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -115,24 +124,31 @@ const Expenses = () => {
   };
 
   const processedExpenses = getFilteredAndSortedExpenses();
+  const totalPages = Math.ceil(processedExpenses.length / ITEMS_PER_PAGE);
+  const currentData = processedExpenses.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   return (
     <div className="animate-fade-in">
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
         <h2 className="fw-bold text-primary m-0">My Expenses</h2>
-        <button className="btn btn-primary-custom d-flex align-items-center gap-2" onClick={handleAddClick}>
-          <FaPlus /> Add Expense
-        </button>
+        <div className="d-flex gap-2">
+          <Button variant="outline-primary" onClick={() => exportToCSV(processedExpenses)}>
+            <FaFileCsv className="me-2" /> Export CSV
+          </Button>
+          <Button onClick={handleAddClick}>
+            <FaPlus className="me-2" /> Add Expense
+          </Button>
+        </div>
       </div>
 
-      <div className="fintech-card p-4 mb-4">
+      <Card className="mb-4">
         <div className="row g-3">
           <div className="col-md-4">
             <div className="input-group">
-              <span className="input-group-text bg-white"><FaSearch className="text-secondary" /></span>
+              <span className="input-group-text bg-transparent"><FaSearch className="text-secondary" /></span>
               <input 
                 type="text" 
-                className="form-control border-start-0 ps-0" 
+                className="form-control border-start-0 ps-0 bg-transparent" 
                 placeholder="Search expenses..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -141,8 +157,8 @@ const Expenses = () => {
           </div>
           <div className="col-md-4">
             <div className="input-group">
-              <span className="input-group-text bg-white"><FaFilter className="text-secondary" /></span>
-              <select className="form-select border-start-0 ps-0" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+              <span className="input-group-text bg-transparent"><FaFilter className="text-secondary" /></span>
+              <select className="form-select border-start-0 ps-0 bg-transparent" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
                 <option value="All">All Categories</option>
                 <option value="Food">Food</option>
                 <option value="Travel">Travel</option>
@@ -157,8 +173,8 @@ const Expenses = () => {
           </div>
           <div className="col-md-4">
             <div className="input-group">
-              <span className="input-group-text bg-white"><FaSort className="text-secondary" /></span>
-              <select className="form-select border-start-0 ps-0" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <span className="input-group-text bg-transparent"><FaSort className="text-secondary" /></span>
+              <select className="form-select border-start-0 ps-0 bg-transparent" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
                 <option value="dateDesc">Newest First</option>
                 <option value="dateAsc">Oldest First</option>
                 <option value="amountDesc">Highest Amount</option>
@@ -167,12 +183,12 @@ const Expenses = () => {
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
-      <div className="fintech-card p-4">
+      <Card>
         {loading ? (
           <ExpenseSkeleton />
-        ) : processedExpenses.length > 0 ? (
+        ) : currentData.length > 0 ? (
           <>
             {/* Desktop Table */}
             <div className="table-responsive d-none d-md-block">
@@ -188,7 +204,7 @@ const Expenses = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {processedExpenses.map(expense => (
+                  {currentData.map(expense => (
                     <tr key={expense._id} className="expense-row">
                       <td className="text-secondary">{new Date(expense.date).toLocaleDateString()}</td>
                       <td>
@@ -199,8 +215,8 @@ const Expenses = () => {
                       <td className="text-secondary">{expense.paymentMethod}</td>
                       <td className="fw-bold text-danger">-${expense.amount.toFixed(2)}</td>
                       <td className="text-end">
-                        <button className="btn btn-sm btn-light me-2 text-primary" onClick={() => handleEditClick(expense)}><FaEdit /></button>
-                        <button className="btn btn-sm btn-light text-danger" onClick={() => handleDeleteClick(expense)}><FaTrash /></button>
+                        <button className="btn btn-sm btn-link text-primary p-1 me-2" onClick={() => handleEditClick(expense)}><FaEdit size={18} /></button>
+                        <button className="btn btn-sm btn-link text-danger p-1" onClick={() => handleDeleteClick(expense)}><FaTrash size={18} /></button>
                       </td>
                     </tr>
                   ))}
@@ -210,7 +226,7 @@ const Expenses = () => {
 
             {/* Mobile Cards */}
             <div className="d-md-none">
-              {processedExpenses.map(expense => (
+              {currentData.map(expense => (
                 <div key={expense._id} className="expense-mobile-card">
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <div>
@@ -225,25 +241,52 @@ const Expenses = () => {
                       <small className="text-secondary">{expense.paymentMethod}</small>
                     </div>
                     <div>
-                      <button className="btn btn-sm btn-light me-2 text-primary" onClick={() => handleEditClick(expense)}><FaEdit /></button>
-                      <button className="btn btn-sm btn-light text-danger" onClick={() => handleDeleteClick(expense)}><FaTrash /></button>
+                      <button className="btn btn-sm btn-link text-primary p-1 me-2" onClick={() => handleEditClick(expense)}><FaEdit size={18} /></button>
+                      <button className="btn btn-sm btn-link text-danger p-1" onClick={() => handleDeleteClick(expense)}><FaTrash size={18} /></button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                <small className="text-secondary">
+                  Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to {Math.min(currentPage * ITEMS_PER_PAGE, processedExpenses.length)} of {processedExpenses.length}
+                </small>
+                <div className="d-flex gap-2">
+                  <Button 
+                    variant="light" 
+                    size="sm" 
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <FaChevronLeft /> Prev
+                  </Button>
+                  <Button 
+                    variant="light" 
+                    size="sm" 
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next <FaChevronRight />
+                  </Button>
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <div className="empty-state">
             <FaWallet size={60} className="text-secondary opacity-50 mb-3" />
             <h4 className="fw-bold text-secondary">No Expenses Found</h4>
             <p className="text-secondary mb-4">You have no expenses matching your criteria. Add a new expense to get started.</p>
-            <button className="btn btn-primary-custom" onClick={handleAddClick}>
+            <Button onClick={handleAddClick}>
               <FaPlus className="me-2" /> Add Expense
-            </button>
+            </Button>
           </div>
         )}
-      </div>
+      </Card>
 
       <ExpenseModal 
         show={showExpenseModal} 
