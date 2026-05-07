@@ -23,6 +23,14 @@
 
 ---
 
+## 🌐 Live Demo
+
+🔗 Frontend: https://expense-iq-zeta.vercel.app
+
+🔗 Backend API: https://expenseiq-4yji.onrender.com
+
+---
+
 ## ✨ 2. Features
 
 - **🔐 Secure Authentication:** JWT-based user login and registration with encrypted passwords.
@@ -194,30 +202,29 @@ npm run dev
 
 ---
 
-## 📸 9. Screenshots
+## 🤖 9. AI Tools Usage
 
-*(Add your screenshots here!)*
+AI-assisted development tools were used during the development process to improve productivity and accelerate implementation.
 
-| Dashboard Overview | Expenses Management |
-| :---: | :---: |
-| <img src="https://via.placeholder.com/600x400.png?text=Dashboard+Screenshot" width="400" alt="Dashboard" /> | <img src="https://via.placeholder.com/600x400.png?text=Expenses+Screenshot" width="400" alt="Expenses" /> |
+### Tools Used
+- ChatGPT
+- Antigravity AI
+- GitHub Copilot
 
-| Dark Mode UI | Authentication |
-| :---: | :---: |
-| <img src="https://via.placeholder.com/600x400.png?text=Dark+Mode+Screenshot" width="400" alt="Dark Mode" /> | <img src="https://via.placeholder.com/600x400.png?text=Login+Screenshot" width="400" alt="Login" /> |
+### How AI Assisted Development
+- Assisted in planning the MERN stack architecture
+- Helped generate reusable frontend components
+- Assisted with backend API structure and authentication flow
+- Helped debug deployment and CORS issues
+- Assisted with UI/UX refinement and responsive layouts
+- Provided optimization suggestions for production deployment
+
+### Developer Contribution
+All project integration, customization, debugging, deployment, testing, and final architectural decisions were implemented and verified manually.
 
 ---
 
-## 🤖 10. AI Tools Usage
-
-This project was built and accelerated using Advanced AI Coding Assistants.
-- **AI Agent:** Google Deepmind's Antigravity (Agentic AI)
-- **Role:** The AI functioned as a senior full-stack pair programmer, responsible for architecting the MERN stack, implementing complex React state management (Context API), designing the premium CSS UI, and generating robust MongoDB schemas. 
-- **Efficiency:** The AI seamlessly handled both backend API routing and frontend data visualization, ensuring production-ready code quality and rapid iteration.
-
----
-
-## 🔮 11. Future Improvements
+## 🔮 10. Future Improvements
 
 - [ ] Implement user profile updates (change name, email, password).
 - [ ] Add support for multiple currencies.
@@ -227,6 +234,6 @@ This project was built and accelerated using Advanced AI Coding Assistants.
 
 ---
 
-## 📄 12. License
+## 📄 11. License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License
