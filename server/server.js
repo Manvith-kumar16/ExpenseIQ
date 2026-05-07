@@ -10,7 +10,6 @@ const app = express();
 connectDB();
 
 // --- Middleware ---
-app.use(express.json());
 
 // CORS Configuration
 const allowedOrigins = [
@@ -21,15 +20,22 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
+      console.log("Request Origin:", origin);
+
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
+        console.error("Blocked by CORS:", origin);
         callback(new Error("CORS not allowed"));
       }
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+app.use(express.json());
 
 
 // --- Public/Health Routes (Before API Routes) ---
