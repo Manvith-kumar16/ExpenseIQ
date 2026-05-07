@@ -15,10 +15,12 @@ app.use(cors());
 // Route files
 const auth = require('./routes/auth');
 const expenses = require('./routes/expenses');
+const budget = require('./routes/budget');
 
 // Mount routers
 app.use('/api/v1/auth', auth);
 app.use('/api/v1/expenses', expenses);
+app.use('/api/v1/budget', budget);
 
 const PORT = process.env.PORT || 5000;
 
