@@ -220,7 +220,31 @@ AI-assisted development tools were used during the development process to improv
 - Provided optimization suggestions for production deployment
 
 ### Developer Contribution
-All project integration, customization, debugging, deployment, testing, and final architectural decisions were implemented and verified manually.
+
+Although AI-assisted tools were used to accelerate certain parts of development, the complete application architecture, feature integration, debugging process, deployment pipeline, and final implementation decisions were independently handled and verified by the developer.
+
+Key contributions include:
+
+- Designed and structured the complete MERN stack architecture
+- Built and integrated frontend and backend modules manually
+- Implemented JWT authentication and protected routing
+- Configured MongoDB Atlas database integration and schema relationships
+- Developed responsive dashboard layouts and reusable UI components
+- Customized the complete UI/UX to achieve a premium fintech-style interface
+- Integrated charts, analytics, filtering, budget tracking, and CSV export functionality
+- Handled API integration, state management, and frontend-backend communication
+- Debugged and resolved production deployment issues including:
+  - CORS configuration
+  - Environment variables
+  - API routing
+  - MongoDB Atlas connectivity
+  - Render and Vercel deployment setup
+- Optimized responsiveness across desktop, tablet, and mobile devices
+- Performed end-to-end testing of authentication, CRUD operations, analytics, and deployment workflows
+- Refactored generated code for maintainability, scalability, and cleaner architecture
+- Reviewed, modified, and validated all AI-generated outputs before integration into the final project
+
+The project reflects practical full-stack development skills including system design, API development, responsive frontend engineering, cloud deployment, debugging, and production-level application structuring.
 
 ---
 
