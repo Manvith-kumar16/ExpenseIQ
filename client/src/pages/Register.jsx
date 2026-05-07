@@ -1,7 +1,7 @@
 import { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Zap, User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react';
+import { User, Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react';
 import AuthContext from '../context/AuthContext';
 import { toast } from 'react-toastify';
 
@@ -39,9 +39,7 @@ const Register = () => {
       <div className="auth-brand">
         <motion.div initial={{ opacity:0, y:30 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.6 }}>
           <div style={{ display:'flex', alignItems:'center', gap:'0.75rem', marginBottom:'3rem' }}>
-            <div style={{ width:42, height:42, background:'linear-gradient(135deg, #7C3AED, #2563EB)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 30px rgba(124,58,237,0.5)' }}>
-              <Zap size={22} color="white" fill="white" />
-            </div>
+            <img src="/logo.png" alt="ExpenseIQ Logo" style={{ width:46, height:46, borderRadius:12, objectFit:'cover', boxShadow:'0 0 30px rgba(124,58,237,0.4)' }} />
             <span style={{ fontFamily:'Outfit', fontWeight:800, fontSize:'1.4rem', color:'white' }}>ExpenseIQ</span>
           </div>
           <h1 style={{ fontFamily:'Outfit', fontWeight:800, fontSize:'2.1rem', color:'white', letterSpacing:'-0.03em', marginBottom:'1rem', lineHeight:1.2 }}>

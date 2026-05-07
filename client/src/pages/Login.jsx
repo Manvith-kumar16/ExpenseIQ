@@ -1,7 +1,7 @@
 import { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Zap, Mail, Lock, Eye, EyeOff, ArrowRight, TrendingUp, Shield, Globe } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, TrendingUp, Shield, Globe } from 'lucide-react';
 import AuthContext from '../context/AuthContext';
 
 const Login = () => {
@@ -33,9 +33,7 @@ const Login = () => {
       <div className="auth-brand">
         <motion.div initial={{ opacity:0, y:30 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.6, ease:[0.4,0,0.2,1] }}>
           <div style={{ display:'flex', alignItems:'center', gap:'0.75rem', marginBottom:'3rem' }}>
-            <div style={{ width:42, height:42, background:'linear-gradient(135deg, #7C3AED, #2563EB)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 30px rgba(124,58,237,0.5)' }}>
-              <Zap size={22} color="white" fill="white" />
-            </div>
+            <img src="/logo.png" alt="ExpenseIQ Logo" style={{ width:46, height:46, borderRadius:12, objectFit:'cover', boxShadow:'0 0 30px rgba(124,58,237,0.4)' }} />
             <span style={{ fontFamily:'Outfit', fontWeight:800, fontSize:'1.4rem', color:'white' }}>ExpenseIQ</span>
           </div>
 
